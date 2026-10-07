@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" fill="none" role="img" aria-labelledby="hatch-title hatch-desc">
 <title id="hatch-title">Antonio Navarro — Software Engineer</title>
-<desc id="hatch-desc">A graphite airlock with a rotating five-spoke handwheel. Locking bolts retract and two doors slide apart to reveal Antonio Navarro, a software engineer working across AI, HealthTech and Product. A seamless twenty-second loop. Reduced motion shows the open profile.</desc>
+<desc id="hatch-desc">A graphite airlock with a rotating five-spoke handwheel. Locking bolts retract and two doors slide apart to reveal Antonio Navarro, a software engineer working across AI, HealthTech and Product. A continuous twenty-second loop.</desc>
 <!--
   HATCH / 07 — 1200 × 480. No scripts, remote assets, or external fonts.
   Shared 20 s timeline:
@@ -69,7 +69,6 @@
   @keyframes trace{from{stroke-dashoffset:0}to{stroke-dashoffset:-1600}}
   @keyframes orbit-turn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes seam-light{0%,15%,30%,83%,96%,100%{opacity:0}19%,22%,93%{opacity:.8}}
-  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 
 /* Frozen open composition for static use. */
 *{animation:none!important}

@@ -27,15 +27,13 @@
     <div class="group"><button type="button" data-width="1200" aria-pressed="true">Completa</button><button type="button" data-width="850" aria-pressed="false">Perfil</button><button type="button" data-width="375" aria-pressed="false">Móvil</button><button id="theme" type="button" aria-pressed="false">Fondo claro</button></div>
   </div>
   <div class="timeline"><label for="time" hidden>Tiempo de la animación</label><input id="time" type="range" min="0" max="20" step="0.01" value="0"><output id="clock" for="time">0.00 / 20 s</output></div>
-  <p id="motion-note" role="status"></p>
-  <button id="motion-override" type="button" hidden>Ver animación de todos modos</button>
   <div class="phases">
     <div class="phase"><code>00.00 — 04.00</code><strong>01 / Desbloqueo</strong>El volante gira 144°. Dos cerrojos se retiran de sus alojamientos.</div>
     <div class="phase"><code>04.00 — 06.00</code><strong>02 / Apertura</strong>Las hojas aceleran y frenan. El volante acompaña a la puerta izquierda.</div>
     <div class="phase"><code>06.00 — 16.60</code><strong>03 / Identidad</strong>Nombre, especialidad y monograma. Movimiento ambiental suave.</div>
     <div class="phase"><code>16.60 — 20.00</code><strong>04 / Cierre</strong>Las puertas encajan, los cerrojos avanzan y el volante vuelve a su posición.</div>
   </div>
-  <footer><p>SVG vectorial autónomo · 1200 × 480 · Bucle de 20 s.<br>Respeta la preferencia de movimiento reducido. Los controles pertenecen a esta vista previa; en GitHub se reproduce la imagen.</p><div class="links"><a class="link" href="assets/hatch-banner.svg" target="_blank" rel="noopener">Abrir SVG animado ↗</a><a class="link" href="assets/hatch-banner-static.svg" target="_blank" rel="noopener">Versión estática ↗</a></div></footer>
+  <footer><p>SVG vectorial autónomo · 1200 × 480 · Bucle continuo de 20 s.<br>Reproducción automática. Los controles pertenecen a esta vista previa; en GitHub se reproduce la imagen.</p><div class="links"><a class="link" href="assets/hatch-banner.svg" target="_blank" rel="noopener">Abrir SVG animado ↗</a><a class="link" href="assets/hatch-banner-static.svg" target="_blank" rel="noopener">Versión estática ↗</a></div></footer>
 </main>
 <script>
   const stage = document.querySelector('#stage');
@@ -45,10 +43,6 @@
   const svg = stage.querySelector('svg');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const params = new URLSearchParams(location.search);
-  const svgStyle = svg.querySelector('style');
-  const originalStyle = svgStyle.textContent;
-  const reducedRule = '@media(prefers-reduced-motion:reduce){*{animation:none!important}}';
-  let motionOverride = params.get('motion')==='full';
   if(params.has('capture')) document.body.classList.add('capture');
   let animations = [];
   let running = true;
@@ -66,17 +60,11 @@
     play.textContent=running?'Pausar':'Reproducir';
   }
   function setup(){
-    svgStyle.textContent=motionOverride?originalStyle.replace(reducedRule,''):originalStyle;
     collect();
-    const reduced=motion.matches&&!motionOverride;
-    document.documentElement.dataset.motion=reduced?'reduced':'full';
+    document.documentElement.dataset.motion='full';
+    document.documentElement.dataset.systemMotion=motion.matches?'reduced':'full';
     document.documentElement.dataset.animations=String(animations.length);
-    document.querySelectorAll('#play,#restart,[data-time],#time').forEach(e=>e.disabled=reduced);
-    document.querySelector('#motion-note').textContent=reduced?'Movimiento reducido activado en tu sistema: se muestra la composición abierta y estática.':'';
-    document.querySelector('#motion-override').hidden=!motion.matches||document.body.classList.contains('capture');
-    document.querySelector('#motion-override').textContent=motionOverride?'Respetar movimiento reducido':'Ver animación de todos modos';
-    if(reduced){running=false;play.textContent='Vista estática';display(10);}
-    else{running=true;play.textContent='Pausar';}
+    running=true;play.textContent='Pausar';
   }
   play.addEventListener('click',toggle);
   document.querySelector('#restart').addEventListener('click',()=>{seek(0);toggle();});
@@ -89,8 +77,6 @@
   document.querySelector('#theme').addEventListener('click',e=>{
     const light=document.body.classList.toggle('light');e.currentTarget.setAttribute('aria-pressed',String(light));e.currentTarget.textContent=light?'Fondo oscuro':'Fondo claro';
   });
-  motion.addEventListener('change',setup);
-  document.querySelector('#motion-override').addEventListener('click',()=>{motionOverride=!motionOverride;setup();});
   setup();
   if(params.has('at')&&animations.length)seek(Math.max(0,Math.min(20,Number(params.get('at'))||0)));
   function tick(){if(running&&animations.length)display(((animations[0].currentTime||0)/1000)%20);requestAnimationFrame(tick);}

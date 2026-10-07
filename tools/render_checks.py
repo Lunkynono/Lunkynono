@@ -34,6 +34,7 @@ for element in xml.iter():
         for target in re.findall(r"url\(#([^)]*)\)", value):
             assert target in ids, target
 assert "assets/hatch-banner.svg" in (ROOT / "README.md").read_text(encoding="utf-8")
+assert "prefers-reduced-motion" not in svg, "Profile banner must animate continuously"
 
 def render(url, name, width, height, dump=False):
     args = [str(CHROME), "--headless=new", "--disable-gpu", "--no-first-run",
@@ -50,9 +51,9 @@ def render(url, name, width, height, dump=False):
 
 # Real <img> elements exercise secure-image SVG mode, as used in a README.
 # Freeze CSS at sampled times; this is only applied to the QA copies.
-def image_at(t, reduced=False):
-    frozen = svg.replace("@media(prefers-reduced-motion:reduce){*{animation:none!important}}", "")
-    rule = "*{animation:none!important}" if reduced else f"*{{animation-delay:-{t}s!important;animation-play-state:paused!important}}"
+def image_at(t):
+    frozen = svg
+    rule = f"*{{animation-delay:-{t}s!important;animation-play-state:paused!important}}"
     frozen = frozen.replace("</style>", rule + "</style>")
     return "data:image/svg+xml;base64," + base64.b64encode(frozen.encode()).decode()
 
@@ -70,22 +71,25 @@ mobile += ''.join(f'<img alt="Mobile frame" src="{image_at(t)}">' for t in (0, 4
 (QA / "mobile.html").write_text(mobile, encoding="utf-8")
 render((QA / "mobile.html").as_uri(), "mobile.png", 440, 540)
 preview = (ROOT / "preview.html").as_uri()
-render(preview + "?motion=full&at=0", "preview-desktop.png", 1440, 990)
-render(preview + "?capture=1&motion=full&at=10", "open.png", 1200, 480)
-render(preview + "?capture=1&motion=full&at=0", "closed.png", 1200, 480)
+render(preview + "?at=0", "preview-desktop.png", 1440, 990)
+render(preview + "?capture=1&at=10", "open.png", 1200, 480)
+render(preview + "?capture=1&at=0", "closed.png", 1200, 480)
 
 # Review keyframe boundaries and accessibility from the actual preview DOM.
-dom = render(preview + "?capture=1&motion=full&at=4.8", "unused", 1200, 480, dump=True)
+dom = render(preview + "?capture=1&at=4.8", "unused", 1200, 480, dump=True)
 assert 'data-motion="full"' in dom
 count = re.search(r'data-animations="(\d+)"', dom)
 assert count and int(count.group(1)) >= 10, "CSS animations did not initialize"
 reduced_dom = render(preview + "?capture=1", "unused", 1200, 480, dump=True)
+assert 'data-motion="full"' in reduced_dom, "Default preview must autoplay"
 # Local browser assertions for the mechanical sequence and preview controls.
 checks = r'''<script>
 try {
   const expect=(ok,msg)=>{if(!ok)throw Error(msg)};
   const matrix=sel=>new DOMMatrix(getComputedStyle(svg.querySelector(sel)).transform);
   const near=(a,b)=>Math.abs(a-b)<.1;
+  expect(running&&animations.length>=10,'automatic playback');
+  expect(animations.every(a=>a.playState==='running'&&a.effect.getTiming().iterations===Infinity),'continuous loop');
   seek(0);
   expect(near(matrix('#left-leaf').e,0)&&near(matrix('#right-leaf').e,0),'closed geometry');
   seek(3.2);
@@ -110,22 +114,18 @@ try {
   document.querySelector('[data-width="375"]').click();
   expect(document.querySelector('.frame').style.maxWidth==='375px','mobile control');
   document.querySelector('#theme').click();expect(document.body.classList.contains('light'),'light background');
-  if(motion.matches){
-    motionOverride=false;setup();
-    expect(animations.length===0&&near(matrix('#left-leaf').e,-730),'reduced motion');
-    document.querySelector('#motion-override').click();
-    expect(animations.length>=10&&running,'explicit motion opt-in');
-  }
+  expect(animations.length>=10&&running,'animation remains active regardless of system motion preference');
   document.documentElement.dataset.selfTest='PASS';
 } catch(error){document.documentElement.dataset.selfTest='FAIL: '+error.message;}
 </script>'''
 qa_html=(ROOT/'preview.html').read_text(encoding='utf-8').replace('</html>',checks+'</html>')
 (QA/'controls.html').write_text(qa_html,encoding='utf-8')
-tested=render((QA/'controls.html').as_uri()+'?motion=full','unused',1200,700,dump=True)
+tested=render((QA/'controls.html').as_uri(),'unused',1200,700,dump=True)
 result=re.search(r'data-self-test="([^"]+)"',tested)
 assert result and result.group(1)=='PASS', result.group(1) if result else 'Browser assertions did not run'
 report = {"xml": "valid", "internal_references": "valid", "animated_elements": int(count.group(1)),
-          "system_reduced_motion": 'data-motion="reduced"' in reduced_dom,
+          "system_reduced_motion": 'data-system-motion="reduced"' in reduced_dom,
+          "autoplay": "enabled", "loop": "infinite",
           "svg_bytes": len(svg.encode()), "rendered_times_seconds": [t for t, _ in samples],
           "image_mode": "rendered as img, no script inside SVG", "mechanics_and_controls": result.group(1),
           "note": "GitHub-hosted result not yet verified."}

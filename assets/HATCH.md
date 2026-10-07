@@ -10,9 +10,10 @@ Abre `../preview.html` en Chrome, Edge o Firefox. No hace falta instalar paquete
 ni arrancar un servidor. La vista previa es autónoma y permite pausar, reiniciar,
 arrastrar el tiempo, saltar entre fases y revisar anchos de 1200, 850 y 375 px.
 
-Si Windows tiene activado movimiento reducido, la imagen permanece abierta.
-En la vista previa, «Ver animación de todos modos» permite reproducirla por
-elección expresa sin modificar Windows. El SVG del README respeta esa preferencia.
+La animación arranca automáticamente y repite el ciclo de forma continua,
+también cuando Windows tiene activado movimiento reducido. En la vista previa
+puede pausarse manualmente. La versión estática es un archivo opcional separado;
+no es la imagen utilizada por el perfil.
 
 ## Archivos
 
@@ -72,7 +73,7 @@ existe únicamente en la página local de revisión, para controlar el tiempo.
 
 El README lo incluye con una etiqueta `img`. Se han renderizado las fases en ese
 modo de imagen local, además de la previsualización; el resultado servido por
-GitHub debe comprobarse tras publicar. No se ha hecho commit ni push.
+GitHub debe comprobarse tras publicar.
 
 Los pequeños rótulos forman parte del detalle visual y se vuelven ornamentales
 en móvil; el nombre sigue siendo el elemento principal legible.
