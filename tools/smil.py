@@ -45,8 +45,8 @@ def compile_svg(source):
         if 'trace' in classes:
             animate(element,'stroke-dashoffset','0;-1600','0;1')
         if 'lock-light' in classes:
-            element.set('fill','#d6ea59')
-            animate(element,'fill','#e49a68;#e49a68;#d6ea59;#d6ea59;#e49a68;#e49a68',
+            element.set('fill','#F3E600')
+            animate(element,'fill','#FF2A4F;#FF2A4F;#F3E600;#F3E600;#FF2A4F;#FF2A4F',
                     '0;.06;.16;.94;.96;1',easing='.25 .1 .25 1')
         if 'seam-light' in classes:
             element.set('opacity','0')
