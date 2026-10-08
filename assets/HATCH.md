@@ -17,11 +17,13 @@ no es la imagen utilizada por el perfil.
 
 ## Archivos
 
-- `hatch-banner.svg`: fuente animada usada por el README.
+- `hatch-banner.svg`: dibujo fuente editable.
+- `hatch-banner-animated.svg`: versión con animación nativa SVG (SMIL) usada por el README.
 - `hatch-banner-static.svg`: composición abierta sin animaciones activas.
 - `../preview.html`: vista previa generada, con SVG incrustado.
 - `../tools/preview.template.html`: plantilla de los controles.
 - `../tools/build_preview.py`: regenera la vista previa y la versión estática.
+- `../tools/smil.py`: define la secuencia nativa de animación del archivo publicado.
 - `../tools/render_checks.py`: comprobaciones XML y capturas locales con Chrome.
 
 ## Movimiento
@@ -48,7 +50,9 @@ abiertas cuando se desactivan las animaciones, para conservar la información.
 
 El SVG contiene comentarios de cada grupo. `identity` y `identity-mark` son el
 contenido interior; `left-leaf`, `right-leaf` y `handwheel`, el mecanismo. Los
-keyframes están en el bloque `style`, con puntos expresados en porcentajes de 20 s.
+tiempos del SVG publicado están en `tools/smil.py`, expresados como fracciones de 20 s.
+El archivo fuente conserva la primera secuencia CSS como referencia de diseño;
+el generador sustituye esa secuencia por elementos `animate` y `animateTransform`.
 
 Después de editar el SVG, desde la raíz del repositorio **Lunkynono**:
 
@@ -67,7 +71,7 @@ Los archivos de comprobación y el perfil de navegador aislado se guardan en
 
 ## Integración
 
-1200 × 480, escala proporcional, SVG y CSS autocontenidos. El banner no contiene
+1200 × 480, escala proporcional, SVG con animación SMIL autocontenida. El banner no contiene
 JavaScript, fuentes remotas, imágenes externas ni `foreignObject`. El JavaScript
 existe únicamente en la página local de revisión, para controlar el tiempo.
 

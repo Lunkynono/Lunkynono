@@ -33,7 +33,7 @@
     <div class="phase"><code>06.00 — 16.60</code><strong>03 / Identidad</strong>Nombre, especialidad y monograma. Movimiento ambiental suave.</div>
     <div class="phase"><code>16.60 — 20.00</code><strong>04 / Cierre</strong>Las puertas encajan, los cerrojos avanzan y el volante vuelve a su posición.</div>
   </div>
-  <footer><p>SVG vectorial autónomo · 1200 × 480 · Bucle continuo de 20 s.<br>Reproducción automática. Los controles pertenecen a esta vista previa; en GitHub se reproduce la imagen.</p><div class="links"><a class="link" href="assets/hatch-banner.svg" target="_blank" rel="noopener">Abrir SVG animado ↗</a><a class="link" href="assets/hatch-banner-static.svg" target="_blank" rel="noopener">Versión estática ↗</a></div></footer>
+  <footer><p>SVG vectorial autónomo · 1200 × 480 · Bucle continuo de 20 s.<br>Reproducción automática. Los controles pertenecen a esta vista previa; en GitHub se reproduce la imagen.</p><div class="links"><a class="link" href="assets/hatch-banner-animated.svg" target="_blank" rel="noopener">Abrir SVG animado ↗</a><a class="link" href="assets/hatch-banner-static.svg" target="_blank" rel="noopener">Versión estática ↗</a></div></footer>
 </main>
 <script>
   const stage = document.querySelector('#stage');
@@ -44,26 +44,22 @@
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const params = new URLSearchParams(location.search);
   if(params.has('capture')) document.body.classList.add('capture');
-  let animations = [];
   let running = true;
-  function collect(){ animations = svg.getAnimations({subtree:true}); }
   function display(t){ slider.value=t; clock.textContent=t.toFixed(2)+' / 20 s'; }
   function seek(t){
     running=false;
-    for(const a of animations){a.pause();a.currentTime=t*1000;}
+    svg.pauseAnimations();svg.setCurrentTime(t);
     play.textContent='Reproducir';display(t);
   }
   function toggle(){
-    if(!animations.length)return;
     running=!running;
-    animations.forEach(a=>running?a.play():a.pause());
+    running?svg.unpauseAnimations():svg.pauseAnimations();
     play.textContent=running?'Pausar':'Reproducir';
   }
   function setup(){
-    collect();
     document.documentElement.dataset.motion='full';
     document.documentElement.dataset.systemMotion=motion.matches?'reduced':'full';
-    document.documentElement.dataset.animations=String(animations.length);
+    document.documentElement.dataset.animations=String(svg.querySelectorAll('animate,animateTransform').length);
     running=true;play.textContent='Pausar';
   }
   play.addEventListener('click',toggle);
@@ -78,8 +74,8 @@
     const light=document.body.classList.toggle('light');e.currentTarget.setAttribute('aria-pressed',String(light));e.currentTarget.textContent=light?'Fondo oscuro':'Fondo claro';
   });
   setup();
-  if(params.has('at')&&animations.length)seek(Math.max(0,Math.min(20,Number(params.get('at'))||0)));
-  function tick(){if(running&&animations.length)display(((animations[0].currentTime||0)/1000)%20);requestAnimationFrame(tick);}
+  if(params.has('at'))seek(Math.max(0,Math.min(20,Number(params.get('at'))||0)));
+  function tick(){if(running)display(svg.getCurrentTime()%20);requestAnimationFrame(tick);}
   requestAnimationFrame(tick);
 </script>
 </html>

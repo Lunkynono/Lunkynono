@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/hatch-banner.svg" width="100%" alt="Antonio Navarro — Software Engineer. AI, HealthTech and Product."/>
+  <img src="./assets/hatch-banner-animated.svg" width="100%" alt="Antonio Navarro — Software Engineer. AI, HealthTech and Product."/>
 </div>
 
 <br>

@@ -20,7 +20,7 @@ CHROME = Path(os.environ.get("PROGRAMFILES", "C:/Program Files")) / "Google/Chro
 if not CHROME.exists():
     raise SystemExit("Chrome not found; open preview.html to review manually.")
 
-svg = (ROOT / "assets/hatch-banner.svg").read_text(encoding="utf-8")
+svg = (ROOT / "assets/hatch-banner-animated.svg").read_text(encoding="utf-8")
 xml = ET.fromstring(svg)
 ns = {"s": "http://www.w3.org/2000/svg"}
 assert xml.attrib["viewBox"] == "0 0 1200 480"
@@ -33,8 +33,9 @@ for element in xml.iter():
             assert value.startswith("#") and value[1:] in ids, value
         for target in re.findall(r"url\(#([^)]*)\)", value):
             assert target in ids, target
-assert "assets/hatch-banner.svg" in (ROOT / "README.md").read_text(encoding="utf-8")
+assert "assets/hatch-banner-animated.svg" in (ROOT / "README.md").read_text(encoding="utf-8")
 assert "prefers-reduced-motion" not in svg, "Profile banner must animate continuously"
+assert '@keyframes' not in svg, 'Published motion must use native SVG animation'
 
 def render(url, name, width, height, dump=False):
     args = [str(CHROME), "--headless=new", "--disable-gpu", "--no-first-run",
@@ -50,11 +51,9 @@ def render(url, name, width, height, dump=False):
     return result.stdout
 
 # Real <img> elements exercise secure-image SVG mode, as used in a README.
-# Freeze CSS at sampled times; this is only applied to the QA copies.
+# Offset native SVG timelines to sample phases in real image mode.
 def image_at(t):
-    frozen = svg
-    rule = f"*{{animation-delay:-{t}s!important;animation-play-state:paused!important}}"
-    frozen = frozen.replace("</style>", rule + "</style>")
+    frozen = svg.replace('begin="0s"', f'begin="-{t}s"')
     return "data:image/svg+xml;base64," + base64.b64encode(frozen.encode()).decode()
 
 samples = [(0, "01 / CERRADA"), (2.3, "02 / VOLANTE EN GIRO"), (3.9, "03 / CERROJOS RETRAÍDOS"),
@@ -79,44 +78,54 @@ render(preview + "?capture=1&at=0", "closed.png", 1200, 480)
 dom = render(preview + "?capture=1&at=4.8", "unused", 1200, 480, dump=True)
 assert 'data-motion="full"' in dom
 count = re.search(r'data-animations="(\d+)"', dom)
-assert count and int(count.group(1)) >= 10, "CSS animations did not initialize"
+assert count and int(count.group(1)) >= 10, "Native SVG animations did not initialize"
 reduced_dom = render(preview + "?capture=1", "unused", 1200, 480, dump=True)
 assert 'data-motion="full"' in reduced_dom, "Default preview must autoplay"
 # Local browser assertions for the mechanical sequence and preview controls.
 checks = r'''<script>
+window.addEventListener('load',async()=>{
 try {
   const expect=(ok,msg)=>{if(!ok)throw Error(msg)};
-  const matrix=sel=>new DOMMatrix(getComputedStyle(svg.querySelector(sel)).transform);
+  const sample=async t=>{seek(t);await new Promise(r=>setTimeout(r,40));};
+  const matrix=sel=>{
+    svg.querySelector(sel).getBoundingClientRect();
+    const list=svg.querySelector(sel).transform.animVal;
+    let result=new DOMMatrix();
+    for(let i=0;i<list.numberOfItems;i++){const m=list.getItem(i).matrix;result=result.multiply(new DOMMatrix([m.a,m.b,m.c,m.d,m.e,m.f]));}
+    return result;
+  };
   const near=(a,b)=>Math.abs(a-b)<.1;
-  expect(running&&animations.length>=10,'automatic playback');
-  expect(animations.every(a=>a.playState==='running'&&a.effect.getTiming().iterations===Infinity),'continuous loop');
-  seek(0);
-  expect(near(matrix('#left-leaf').e,0)&&near(matrix('#right-leaf').e,0),'closed geometry');
-  seek(3.2);
+  expect(running&&!svg.animationsPaused(),'automatic playback');
+  expect([...svg.querySelectorAll('animate,animateTransform')].every(a=>a.getAttribute('repeatCount')==='indefinite'),'continuous loop');
+  await sample(0);
+  expect(near(matrix('#left-leaf').e,0)&&near(matrix('#right-leaf').e,0),'closed geometry '+matrix('#left-leaf').e+', '+matrix('#right-leaf').e);
+  await sample(3.2);
   expect(near(matrix('#handwheel').a,Math.cos(144*Math.PI/180)),'wheel turn');
   expect(near(matrix('#left-leaf').e,0),'door opens before unlock');
-  seek(3.99);
+  await sample(3.99);
   expect(matrix('.bolt').e < -43,'bolts did not retract');
-  seek(6);
+  await sample(6);
   expect(near(matrix('#left-leaf').e,-730)&&near(matrix('#right-leaf').e,650),'open geometry');
-  seek(18.8);
+  await sample(18.8);
   expect(near(matrix('#left-leaf').e,0)&&near(matrix('#right-leaf').e,0),'closing geometry');
   expect(near(matrix('.bolt').e,-44),'bolts advanced before doors closed');
-  seek(20);
+  await sample(20);
   expect(near(matrix('#left-leaf').e,0)&&near(matrix('#handwheel').a,1)&&near(matrix('.bolt').e,0),'loop continuity');
   document.querySelector('[data-time="10"]').click();
+  await new Promise(r=>setTimeout(r,40));
   expect(!running&&Number(slider.value)===10&&near(matrix('#left-leaf').e,-730),'phase button');
   slider.value=5;slider.dispatchEvent(new Event('input'));
-  expect(!running&&animations.every(a=>a.currentTime===5000),'scrubber synchronization');
+  expect(!running&&svg.animationsPaused()&&near(svg.getCurrentTime(),5),'scrubber synchronization');
   play.click();expect(running,'play control');
   play.click();expect(!running,'pause control');
   document.querySelector('#restart').click();expect(running,'restart control');
   document.querySelector('[data-width="375"]').click();
   expect(document.querySelector('.frame').style.maxWidth==='375px','mobile control');
   document.querySelector('#theme').click();expect(document.body.classList.contains('light'),'light background');
-  expect(animations.length>=10&&running,'animation remains active regardless of system motion preference');
+  expect(!svg.animationsPaused()&&running,'animation remains active regardless of system motion preference');
   document.documentElement.dataset.selfTest='PASS';
 } catch(error){document.documentElement.dataset.selfTest='FAIL: '+error.message;}
+});
 </script>'''
 qa_html=(ROOT/'preview.html').read_text(encoding='utf-8').replace('</html>',checks+'</html>')
 (QA/'controls.html').write_text(qa_html,encoding='utf-8')
